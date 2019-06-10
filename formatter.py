@@ -52,14 +52,13 @@ def fmt_met_calls(
         Processed TSV output file path in intermediate directory.
 
     met_reads_col: list of int, optional
-        If methylation state column doesn't exist in the input file (i.e. methylation state is 999),
-        indicate the column index of the number of methylated reads.
+        If methylation level column doesn't exist in the input file (i.e. methylation level column
+        index is 999), indicate the column index of the number of methylated reads.
 
     Raises
     ------
     ValueError
-        If the given base of the position value is not 0 or 1 OR if methylation state is 999 but
-        read count columns are not specified.
+        If the parameter values are not as expected.
     """
 
     # Throw error if parameter values are not as expected.
@@ -72,7 +71,7 @@ def fmt_met_calls(
         )
 
     # Initialize new header, remove context column if mammalian data.
-    new_header: List[str] = ["chrom", "0-pos", "strand", "context", "coverage" "methylation_state"]
+    new_header: List[str] = ["chrom", "0-pos", "strand", "context", "coverage" "methylation_level"]
     _rm_context_col(mammal, 3, new_header)
 
     with open(file=in_fpath, mode="r") as in_f, open(file=out_fpath, mode="w") as out_f:
@@ -96,14 +95,14 @@ def fmt_met_calls(
                 strand: str = line[cols[2]]
                 context: str = "" if mammal else _cytosine_context(line[cols[3]])
 
-                # Calculate methylation state from read counts if not available.
+                # Calculate methylation level from read counts if not available.
                 if cols[5] == 999:
-                    methylation_state: float = _calc_met_state(line, met_reads_col, coverage)
+                    methylation_level: float = _calc_met_level(line, met_reads_col, coverage)
                 else:
-                    methylation_state = float(line[cols[5]])
+                    methylation_level = float(line[cols[5]])
 
                 # Write new row to output file.
-                new_row: list = [chrom, pos, strand, context, coverage, methylation_state]
+                new_row: list = [chrom, pos, strand, context, coverage, methylation_level]
                 _rm_context_col(mammal, 3, new_header)
                 wtr.writerow(new_row)
 
@@ -150,7 +149,7 @@ def _cytosine_context(context: str) -> str:
     return methylation_context
 
 
-def _calc_met_state(curr_row: list, met_reads_col: int, coverage: int) -> float:
+def _calc_met_level(curr_row: list, met_reads_col: int, coverage: int) -> float:
     """
     Calculate the methylation level from the number of methylated reads and the coverage.
 
