@@ -1,14 +1,12 @@
-# format_met_calls.py
+# formatter.py
 
 import csv
-import sys
 from pathlib import Path
 from typing import List, NoReturn, Optional
 
 """
+TODO: [Docstring]:: add description for formatter.py
 """
-
-e: float = 0.00001  # small value to make sure 0.5 is being rounded up
 
 
 def fmt_met_calls(
@@ -43,9 +41,9 @@ def fmt_met_calls(
             - Context (plant only; ideally methylation context, but nucleotide context works as
               well)
             - Coverage (interchangeable with total read count)
-            - Methylation state (sometimes there is no methylation state column, in that case set
-              as 999 to calculate methylation state from # of methylated reads divided by # of
-              total reads)
+            - Methylation level (sometimes there is no methylation level column, in that case set
+              as 999 to calculate methylation level from the # of methylated reads divided by the
+              total of reads)
 
     in_fpath : path
         Raw TSV input file path.
@@ -64,12 +62,12 @@ def fmt_met_calls(
         read count columns are not specified.
     """
 
-    # Throw error if position base is not 0 or 1.
+    # Throw error if parameter values are not as expected.
     if pos_start not in [0, 1]:
         raise ValueError("Chromosomal position value must be 0-based or 1-based.")
     elif cols[6] == 999 and met_reads_col is None:
         raise ValueError(
-            "Methylation state has been indicated to not be present in the input raw methylation "
+            "Methylation level has been indicated to not be present in the input raw methylation "
             + "calls file but methylation read count column index has not been properly provided."
         )
 
@@ -100,9 +98,9 @@ def fmt_met_calls(
 
                 # Calculate methylation state from read counts if not available.
                 if cols[5] == 999:
-                    methylation_state: int = _calc_met_state(line, met_reads_col, coverage)
+                    methylation_state: float = _calc_met_state(line, met_reads_col, coverage)
                 else:
-                    methylation_state = round(float(line[cols[5]]) + e)
+                    methylation_state = float(line[cols[5]])
 
                 # Write new row to output file.
                 new_row: list = [chrom, pos, strand, context, coverage, methylation_state]
@@ -152,9 +150,9 @@ def _cytosine_context(context: str) -> str:
     return methylation_context
 
 
-def _calc_met_state(curr_row: list, met_reads_col: int, coverage: int) -> int:
+def _calc_met_state(curr_row: list, met_reads_col: int, coverage: int) -> float:
     """
-    Calculate the methylation state from number of methylated reads and coverage.
+    Calculate the methylation level from the number of methylated reads and the coverage.
 
     Parameters
     ----------
@@ -169,7 +167,7 @@ def _calc_met_state(curr_row: list, met_reads_col: int, coverage: int) -> int:
 
     Returns
     -------
-    int
-        The methylation state. 0 = unmethylated, 1 = methylated.
+    float
+        The methylation level.
     """
-    return round(int(curr_row[met_reads_col]) / coverage + e)
+    return int(curr_row[met_reads_col]) / coverage
