@@ -72,6 +72,7 @@ class Simulator:
         self.insert_sigma: int = insert_sigma
 
         # Output file paths.
+        util.ensure_dir(output_dir)
         self.fq_1: Path = output_dir.joinpath("sim_reads_1.fq")
         self.fq_2: Path = output_dir.joinpath("sim_reads_2.fq")
 
