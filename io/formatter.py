@@ -2,7 +2,7 @@
 
 import csv
 from pathlib import Path
-from typing import List, NoReturn, Optional
+from typing import List, NoReturn, Optional, Union
 
 
 def fmt_met_calls(
@@ -11,9 +11,9 @@ def fmt_met_calls(
     pos_start: int,
     cols: List[int],
     in_fpath: Path,
-    out_fpath: Path,
+    out_dpath: Path,
     met_reads_col: Optional[int] = None,
-) -> Optional[NoReturn]:
+) -> Union[NoReturn, Path]:
     """
     Format methylation calls TSV file.
 
@@ -41,15 +41,20 @@ def fmt_met_calls(
               as 999 to calculate methylation level from the # of methylated reads divided by the
               total of reads)
 
-    in_fpath : path
+    in_fpath : pathlib.Path
         Raw TSV input file path.
 
-    out_fpath : path
-        Processed TSV output file path in the intermediate directory.
+    out_dpath : pathlib.Path
+        Processed TSV output directory path (intermediate directory).
 
     met_reads_col: int, optional
         If the methylation level column doesn't exist in the input file (i.e. the methylation level
         column index is 999), indicate the column index of the number of methylated reads.
+
+    Returns
+    -------
+    out_fpath : pathlib.Path
+        Processed TSV output file path.
 
     Raises
     ------
@@ -60,7 +65,7 @@ def fmt_met_calls(
     # Throw error if parameter values are not as expected.
     if pos_start not in [0, 1]:
         raise ValueError("Chromosomal position value must be 0-based or 1-based.")
-    elif cols[6] == 999 and met_reads_col is None:
+    elif cols[6] == 999 and isinstance(met_reads_col, int):
         raise ValueError(
             "Methylation level has been indicated to not be present in the input raw methylation "
             + "calls file, but the methylation read count column index has not been properly "
@@ -71,7 +76,9 @@ def fmt_met_calls(
     new_header: List[str] = ["chrom", "0-pos", "strand", "context", "coverage" "methylation_level"]
     _rm_context_col(mammal, 3, new_header)
 
-    with open(file=in_fpath, mode="r") as in_f, open(file=out_fpath, mode="w") as out_f:
+    # Set output file path.
+    out_fpath: Path = out_dpath.joinpath("processed_" + in_fpath.name)
+    with in_fpath.open() as in_f, out_fpath.open(mode="w") as out_f:
         # Reader/writer objects.
         rdr = csv.reader(in_f, delimiter="\t")
         wtr = csv.writer(out_f, delimiter="\t")
@@ -95,14 +102,17 @@ def fmt_met_calls(
                 # Calculate methylation level from read counts if not available. Round to determine
                 # methylation state.
                 if cols[5] == 999:
+                    assert isinstance(met_reads_col, int)  # make mypy linter happy
                     methylation_state: int = _calc_met_state(line, met_reads_col, coverage)
                 else:
-                    methylation_state = round(line[cols[5]] + 0.00001)  # guard against 0.5.
+                    methylation_state = round(float(line[cols[5]]) + 0.00001)  # guard against 0.5.
 
                 # Write new row to output file; remove context column if mammalian data.
                 new_row: list = [chrom, pos, strand, context, coverage, methylation_state]
                 _rm_context_col(mammal, 3, new_header)
                 wtr.writerow(new_row)
+
+    return out_fpath
 
 
 def _rm_context_col(mammal: bool, context_col_idx: int, row: list) -> None:
