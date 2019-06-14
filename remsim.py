@@ -7,7 +7,7 @@ from typing import Dict, Tuple
 
 from Bio.Seq import Seq
 
-from io import (
+from io_tools import (
     fmt_met_calls as fmt,
     parse_config,
     parse_fasta as fa_parser,
@@ -23,8 +23,8 @@ def main(config_fpath: Path) -> None:
     fmt_conf: dict = config["formatter"]
     met_calls_fpath: Path = fmt(
         fmt_conf["mammal"],
-        fmt_conf["min_cov"],
-        fmt_conf["pos_start"],
+        fmt_conf["minimum_coverage"],
+        fmt_conf["start_position"],
         Path(fmt_conf["raw_methylation_calls"]),
         Path(fmt_conf["intermediate_dir"]),
         fmt_conf["met_reads_col_idx"],
@@ -59,12 +59,14 @@ def main(config_fpath: Path) -> None:
 
 if __name__ == "__main__":
     args = argparse.ArgumentParser(description="Reference Methylation Simulator")
-    args.add_argument(
+    required = args.add_argument_group("required arguments")
+    required.add_argument(
         "-c",
         "--config",
         default=None,
         type=str,
-        help="Configuration JSON file path (default: None)",
+        help="Configuration JSON file path.",
+        required=True
     )
 
-    main(Path(args[0]))
+    main(Path(args.parse_args().config))
