@@ -34,8 +34,9 @@ def main(config_fpath: Path) -> None:
     chrom_seq: Dict[str, Seq] = fa_parser(Path(config["reference"]))
     chrom_met_calls: Dict[str, Tuple[Dict[int, int], Dict[int, int]]] = met_parser(met_calls_fpath)
 
-    sim_conf: dict = config["simulator"]
-    processes: Dict[str, Process] = {}
+    # Generate new process for each chromosome to simulate separately.
+    sim_conf: dict = config["simulator"]  # simulator params
+    processes: Dict[str, Tuple[Simulator, Process]] = {}
     for key in chrom_seq.keys():
         simulator = Simulator(
             chrom=key,
@@ -47,14 +48,17 @@ def main(config_fpath: Path) -> None:
             insert_sigma=sim_conf["insert_size_standard_deviation"],
             output_dir=sim_conf["output_dir"],
         )
-        process: Process = Process(target=simulator.sim_all_reads, args=())
-        processes[key] = process
+        sim_proc: Process = Process(target=simulator.sim_all_reads, args=())
+        processes[key] = (simulator, sim_proc)
 
-    for process in processes.values():
-        process.start()
+    # Start processes.
+    sim_proc: Tuple[Simulator, Process]
+    for sim_proc in processes.values():
+        sim_proc[1].start()
 
-    for process in processes.values():
-        process.join()
+    # Exit completed processes.
+    for sim_proc in processes.values():
+        sim_proc[1].join()
 
 
 if __name__ == "__main__":

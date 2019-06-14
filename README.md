@@ -19,3 +19,6 @@ required arguments:
   -c CONFIG, --config CONFIG
                         Configuration JSON file path.
 ```
+
+## TODO
+- [ ] logging

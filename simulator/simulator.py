@@ -73,8 +73,8 @@ class Simulator:
 
         # Output file paths.
         util.ensure_dir(output_dir)
-        self.fq_1: Path = output_dir.joinpath("sim_reads_1.fq")
-        self.fq_2: Path = output_dir.joinpath("sim_reads_2.fq")
+        self.fq_1: Path = output_dir.joinpath("{}_sim_reads_1.fq".format(self.chrom))
+        self.fq_2: Path = output_dir.joinpath("{}_sim_reads_2.fq".format(self.chrom))
 
     def sim_all_reads(self) -> None:
         """Simulate all read pairs and write to file."""
