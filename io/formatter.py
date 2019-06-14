@@ -4,6 +4,8 @@ import csv
 from pathlib import Path
 from typing import List, NoReturn, Optional, Union
 
+from utils.util import ensure_dir
+
 
 def fmt_met_calls(
     mammal: bool,
@@ -77,6 +79,7 @@ def fmt_met_calls(
     _rm_context_col(mammal, 3, new_header)
 
     # Set output file path.
+    ensure_dir(out_dpath)
     out_fpath: Path = out_dpath.joinpath("processed_" + in_fpath.name)
     with in_fpath.open() as in_f, out_fpath.open(mode="w") as out_f:
         # Reader/writer objects.

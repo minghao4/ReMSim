@@ -1,5 +1,6 @@
 # util.py
 
+from pathlib import Path
 from typing import Any, Dict, NoReturn, Tuple, Union
 
 
@@ -33,7 +34,7 @@ def reverse_tuple_pair(tup: Tuple[Any, Any]) -> Union[NoReturn, Tuple[Any, Any]]
 
     Parameters
     ----------
-    tuple :
+    tup : tuple of any values
         A tuple pair of any values.
 
     Returns
@@ -50,3 +51,16 @@ def reverse_tuple_pair(tup: Tuple[Any, Any]) -> Union[NoReturn, Tuple[Any, Any]]
         raise ValueError("Provided tuple isn't a pair.")
 
     return (tup[1], tup[0])
+
+
+def ensure_dir(dirpath: Path) -> None:
+    """
+    Checks if a directory exists, creates it if it doesn't.
+
+    Parameters
+    ----------
+    dirpath : pathlib.Path
+        Path of the directory in question.
+    """
+    if not dirpath.is_dir():
+        dirpath.mkdir(parents=True)
