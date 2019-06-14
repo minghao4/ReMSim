@@ -1,13 +1,11 @@
 # simulator.py
 
-import csv
 import random
 import time
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Optional, Tuple
 
 from Bio.Seq import Seq
-from Bio.SeqIO.QualityIO import FastqGeneralIterator
 from numpy.random import normal
 
 from .read import ReadPair, Read
@@ -57,7 +55,7 @@ class Simulator:
         read_len: int,
         insert_mu: int,
         insert_sigma: int,
-        output_folder: Path,
+        output_dir: Path,
     ) -> None:
         # Chromosome information.
         self.chrom = chrom
@@ -74,8 +72,8 @@ class Simulator:
         self.insert_sigma: int = insert_sigma
 
         # Output file paths.
-        self.fq_1: Path = output_folder.joinpath("sim_reads_1.fq")
-        self.fq_2: Path = output_folder.joinpath("sim_reads_2.fq")
+        self.fq_1: Path = output_dir.joinpath("sim_reads_1.fq")
+        self.fq_2: Path = output_dir.joinpath("sim_reads_2.fq")
 
     def sim_all_reads(self) -> None:
         """Simulate all read pairs and write to file."""
@@ -92,7 +90,7 @@ class Simulator:
             read2: Read = curr_read_pair.create_read(self.chrom, 1, self.sequence)
 
             # Write read entry to output fastq file.
-            with open(self.fq_1, "a") as f1, open(self.fq_2, "a") as f2:
+            with self.fq_1.open(mode="a") as f1, self.fq_2.open(mode="a") as f2:
                 f1.write(read1.fastq_entry())
                 f2.write(read2.fastq_entry())
 
@@ -123,8 +121,6 @@ class Simulator:
         read2_end: int = read1_start + directed_insert_size + (2 * directed_read_len)
         if read2_end < 0 or read2_end > (self.seq_len + 1):
             return None
-
-        # TODO: [TESTING]:: assert values are as expected
 
         # Set rest of read values.
         reads: Tuple[Tuple[int, int], Tuple[int, int]] = (

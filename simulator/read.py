@@ -1,32 +1,35 @@
 # read.py
+
 from typing import Dict, List, NoReturn, Tuple, Union
 
 from Bio.Seq import Seq, MutableSeq
 
-import utils.util as util
-
 
 class Read:
     """
-    TODO: [DOCSTRING]:: complete this
     A sequence read.
 
     Attributes
     ----------
     chrom : str
+        The chromosome the read is on.
 
     strand : int
+        The strand the read is on. 0 for forward, 1 for reverse.
 
     start_end : tuple of int
+        The start and end positions of the read. [start, end)
 
     met_calls : dict of {int, int}
+        A dictionary of methylation calls. Positional keys and methylation state values.
 
     seq : Bio.Seq.MutableSeq
+        The mutable sequence object of the read.
 
     Methods
     -------
     fastq_entry()
-
+        Creates a FASTQ entry for the read.
     """
     def __init__(
         self,
@@ -50,7 +53,7 @@ class Read:
         -------
         str
             FASTQ entry for the read in this format:
-            @ Read name
+            @Read name
             Sequence
             +
             Quality
@@ -59,9 +62,7 @@ class Read:
         return "{}\n{}\n+\n{}\n".format(self._read_name(), self._read_qual(), self.seq)
 
     def _update_seq_met(self) -> None:
-        """
-        Updates read sequence methylation states based on methylation calls.
-        """
+        """Updates read sequence methylation states based on methylation calls."""
         met_states: List[chr] = ["T", "C"]
         for k, v in self.met_calls.iteritems():
             self.seq[k] = met_states[v]

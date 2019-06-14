@@ -1,6 +1,6 @@
 # util.py
 
-from typing import Any, Dict, NoReturn, Tuple, TypeVar, Union
+from typing import Any, Dict, NoReturn, Tuple, Union
 
 
 def subset_dict(key_range: Tuple[int, int], original_dict: Dict[int, Any]) -> Dict[int, Any]:
@@ -21,7 +21,7 @@ def subset_dict(key_range: Tuple[int, int], original_dict: Dict[int, Any]) -> Di
         A subset dictionary with only entries where the keys lie within the key range bounds.
     """
     subset_dict: Dict[int, Any] = dict(
-        (k, v) for k, v in original_dict.iteritems() if key_range[0] <= k < key_range[1]
+        (k, original_dict[k]) for k in original_dict.keys() if key_range[0] <= k < key_range[1]
     )
 
     return subset_dict
@@ -41,7 +41,7 @@ def reverse_tuple_pair(tup: Tuple[Any, Any]) -> Union[NoReturn, Tuple[Any, Any]]
     tuple
         The reversed tuple pair.
 
-    Throws
+    Raises
     ------
     ValueError
         If the tuple isn't a pair.
