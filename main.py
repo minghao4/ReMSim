@@ -10,10 +10,10 @@ from formatter import fmt_met_calls as fmt
 # from ref_met_sim import read_simulator as sim
 
 # Input parameters
-# TODO: [Main]:: write config json parsing logic
+# TODO: [FEATURE]:: write config json parsing logic
 config_fpath: Path = Path(sys.argv[1])  # configuration json
 
-# TODO: [Main]:: write rest of main logic
+# TODO: [FEATURE]:: write rest of main logic
 # 1. Format raw methylation call file
 # fmt()
 

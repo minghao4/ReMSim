@@ -4,10 +4,6 @@ import csv
 from pathlib import Path
 from typing import List, NoReturn, Optional
 
-"""
-TODO: [Docstring]:: add description for formatter.py
-"""
-
 
 def fmt_met_calls(
     mammal: bool,
