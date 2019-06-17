@@ -21,4 +21,7 @@ required arguments:
 ```
 
 ## TODO
-- [ ] logging
+- [ ] Logging module
+- [ ] Object reprs
+- [ ] More intuitive configuration for simulated sequencing depth/coverage
+- [ ] More detailed description in README

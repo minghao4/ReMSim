@@ -21,18 +21,27 @@ def main(config_fpath: Path) -> None:
 
     # Run formatter with formatter settings.
     fmt_conf: dict = config["formatter"]
+
+    print("Begin formatting...")  # TODO: [Logging]:: move to logger
+
     met_calls_fpath: Path = fmt(
         fmt_conf["mammal"],
         fmt_conf["minimum_coverage"],
         fmt_conf["start_position"],
+        fmt_conf["cols_idx"],
         Path(fmt_conf["raw_methylation_calls"]),
         Path(fmt_conf["intermediate_dir"]),
         fmt_conf["met_reads_col_idx"],
     )
 
+    print("Formatting end.\n")  # TODO: [Logging]:: move to logger
+    print("Reading reference genome and processed methylation calls...")
+
     # Store reference genome fasta info and methylation calls info by chromosome in dictionaries.
     chrom_seq: Dict[str, Seq] = fa_parser(Path(config["reference"]))
     chrom_met_calls: Dict[str, Tuple[Dict[int, int], Dict[int, int]]] = met_parser(met_calls_fpath)
+
+    print("Creating simulator objects...")  # TODO: [Logging]:: move to logger
 
     # Generate new process for each chromosome to simulate separately.
     sim_conf: dict = config["simulator"]  # simulator params
@@ -46,10 +55,12 @@ def main(config_fpath: Path) -> None:
             read_len=sim_conf["read_length"],
             insert_mu=sim_conf["mean_insert_size"],
             insert_sigma=sim_conf["insert_size_standard_deviation"],
-            output_dir=sim_conf["output_dir"],
+            output_dir=Path(sim_conf["output_dir"]),
         )
         sim_proc: Process = Process(target=simulator.sim_all_reads, args=())
         processes[key] = (simulator, sim_proc)
+
+    print("Simulation start...")  # TODO: [Logging]:: move to logger
 
     # Start processes.
     sim_proc: Tuple[Simulator, Process]
@@ -59,6 +70,8 @@ def main(config_fpath: Path) -> None:
     # Exit completed processes.
     for sim_proc in processes.values():
         sim_proc[1].join()
+
+    print("Simulation end.\n")  # TODO: [Logging]:: move to logger
 
 
 if __name__ == "__main__":
