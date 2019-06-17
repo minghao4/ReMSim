@@ -5,8 +5,8 @@ import json
 from pathlib import Path
 from typing import Dict, List, Tuple
 
+from Bio import SeqIO
 from Bio.Seq import Seq
-from Bio.SeqIO.FastaIO import SimpleFastaParser
 
 
 def parse_config(config_fpath: Path) -> dict:
@@ -41,7 +41,7 @@ def parse_fasta(fasta_fpath: Path) -> Dict[str, Seq]:
     """
     with fasta_fpath.open() as f:
         contig_seq: Dict[str, Seq] = dict(
-            (contig, seq) for contig, seq in SimpleFastaParser(f)
+            (seq_record.id, seq_record.seq) for seq_record in SeqIO.parse(f, "fasta")
         )
 
     return contig_seq
@@ -67,6 +67,7 @@ def parse_met_call(met_calls_fpath: Path) -> Dict[str, Tuple[Dict[int, int], Dic
     with met_calls_fpath.open() as f:
         rdr = csv.reader(f, delimiter="\t")
         met_calls: Dict[str, Tuple[Dict[int, int], Dict[int, int]]] = {}
+        next(rdr)  # skip header
 
         # Read through file.
         line: List[str]
