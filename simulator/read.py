@@ -43,6 +43,7 @@ class Read:
         self.strand: int = strand
         self.start: int = start_end[0]
         self.end: int = start_end[1]
+        self.met_calls: Dict[int, int] = met_calls
         self.seq: MutableSeq = seq
 
     def fastq_entry(self) -> str:
@@ -59,13 +60,13 @@ class Read:
             Quality
         """
         self._update_seq_met()
-        return "{}\n{}\n+\n{}\n".format(self._read_name(), self._read_qual(), self.seq)
+        return "{}\n{}\n+\n{}\n".format(self._read_name(), self.seq, self._read_qual())
 
     def _update_seq_met(self) -> None:
         """Updates read sequence methylation states based on methylation calls."""
         met_states: List[chr] = ["T", "C"]
-        for k, v in self.met_calls.iteritems():
-            self.seq[k] = met_states[v]
+        for k, v in self.met_calls.items():
+            self.seq[k - self.start] = met_states[v]
 
         # Reverse the complemented strand so that it's 5' -> 3'.
         if self.strand:
@@ -84,8 +85,9 @@ class Read:
             @[chromosome], [direction] strand: [start]-[end]
         """
         strands: List[str] = ["forward", "reverse"]
-        return "@{}, {} strand: {}-{}".format(
-            self.chrom, strands[self.strand], self.start, self.end
+        sorted_met_calls: List[int] = sorted(self.met_calls.keys())
+        return "@{}, {} strand: {}-{}, methylation sites: {}".format(
+            self.chrom, strands[self.strand], self.start, self.end, sorted_met_calls
         )
 
     def _read_qual(self) -> str:
@@ -99,6 +101,8 @@ class Read:
             The read quality string.
         """
         return "I" * len(self.seq)
+
+    # TODO: [repr]:: add repr method to Read.
 
 
 class ReadPair:
@@ -161,8 +165,11 @@ class ReadPair:
             raise ValueError("Invalid read in pair specified.")
 
         curr_read: Tuple[int, int] = self.reads[read]
+
         read_seq: MutableSeq = chrom_seq[curr_read[0] : curr_read[1]].tomutable()
         if self.strand:
             read_seq.complement()
 
         return Read(chrom, self.strand, curr_read, self.read_met_calls[read], read_seq)
+
+    # TODO: [repr]:: add repr method to ReadPair.
