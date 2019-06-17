@@ -80,22 +80,34 @@ class Simulator:
         """Simulate all read pairs and write to file."""
         simmed_reads: int = 0  # accumulator
         while simmed_reads <= self.num_reads:
+            # TODO: [Logging]:: move to logger.
+            print("Number of simmed reads: {}".format(simmed_reads))
+
             curr_read_pair: ReadPair = self._sim_read()  # sim read pair
 
             # If pair is discarded, continue loop without updating accumulator.
             if curr_read_pair is None:
+                print("Discard\n")  # TODO: [Logging]:: move to logger
                 continue
 
             # Create Read objects for each read in the pair.
             read1: Read = curr_read_pair.create_read(self.chrom, 0, self.sequence)
             read2: Read = curr_read_pair.create_read(self.chrom, 1, self.sequence)
 
+            # TODO: [Logging]:: move to logger.
+            print("Accept")
+            print("Chrom: {}, strand: {}".format(read1.chrom, read1.strand))
+            print("Read 1: {} - {}".format(read1.start, read1.end))
+            print("Read 1 number of met sites: {}".format(len(read1.met_calls)))
+            print("Read 2: {} - {}".format(read2.start, read2.end))
+            print("Read 2 number of met sites: {}\n".format(len(read2.met_calls)))
+
             # Write read entry to output fastq file.
             with self.fq_1.open(mode="a") as f1, self.fq_2.open(mode="a") as f2:
                 f1.write(read1.fastq_entry())
                 f2.write(read2.fastq_entry())
 
-            simmed_reads += 1  # update accumulator
+            simmed_reads += 2  # update accumulator
 
     def _sim_read(self) -> Optional[ReadPair]:
         """
@@ -111,8 +123,8 @@ class Simulator:
 
         # Simulate read properties.
         strand: int = random.randint(0, 1)
-        read1_start: int = random.randint(0, self.length)
-        insert_size: int = round(normal(self.insert_mu, self.insert_sigma, 1)[0])
+        read1_start: int = random.randint(0, self.seq_len)
+        insert_size: int = int(round(normal(self.insert_mu, self.insert_sigma, 1)[0]))
 
         # Set direction as per the strand.
         directed_read_len: int = -self.read_len if strand else self.read_len
