@@ -67,7 +67,7 @@ def fmt_met_calls(
     # Throw error if parameter values are not as expected.
     if pos_start not in [0, 1]:
         raise ValueError("Chromosomal position value must be 0-based or 1-based.")
-    elif cols[6] == 999 and isinstance(met_reads_col, int):
+    elif int(cols[5]) != 999 or not isinstance(int(met_reads_col), int):
         raise ValueError(
             "Methylation level has been indicated to not be present in the input raw methylation "
             + "calls file, but the methylation read count column index has not been properly "
@@ -75,7 +75,7 @@ def fmt_met_calls(
         )
 
     # Initialize new header, remove context column if mammalian data.
-    new_header: List[str] = ["chrom", "0-pos", "strand", "context", "coverage" "methylation_level"]
+    new_header: List[str] = ["chrom", "0-pos", "strand", "context", "coverage", "methylation_level"]
     _rm_context_col(mammal, 3, new_header)
 
     # Set output file path.
