@@ -56,11 +56,19 @@ class Simulator:
         insert_mu: int,
         insert_sigma: int,
         output_dir: Path,
+        file_prefix: str,
+        seq_start: int = 0,
+        sim_window: int = 0,
     ) -> None:
         # Chromosome information.
         self.chrom = chrom
         self.sequence: str = seq
-        self.seq_len: int = len(seq) - 1  # 0-based
+        self.seq_start: int = seq_start
+
+        if sim_window:
+            self.seq_end: int = self.seq_start + sim_window
+        else:
+            self.seq_end = len(seq) - 1  # 0-based
 
         # Methylation calls.
         self.met_calls: Tuple[Dict[int, int]] = chrom_met_calls
@@ -73,13 +81,13 @@ class Simulator:
 
         # Output file paths.
         util.ensure_dir(output_dir)
-        self.fq_1: Path = output_dir.joinpath("{}_sim_reads_1.fq".format(self.chrom))
-        self.fq_2: Path = output_dir.joinpath("{}_sim_reads_2.fq".format(self.chrom))
+        self.fq_1: Path = output_dir.joinpath("{}_sim_reads_1.fq".format(self.file_prefix))
+        self.fq_2: Path = output_dir.joinpath("{}_sim_reads_2.fq".format(self.file_prefix))
 
     def sim_all_reads(self) -> None:
         """Simulate all read pairs and write to file."""
         simmed_reads: int = 0  # accumulator
-        while simmed_reads <= self.num_reads:
+        while simmed_reads < self.num_reads:
             # TODO: [Logging]:: move to logger.
             print("Number of simmed reads: {}".format(simmed_reads))
 
@@ -123,7 +131,7 @@ class Simulator:
 
         # Simulate read properties.
         strand: int = random.randint(0, 1)
-        read1_start: int = random.randint(0, self.seq_len)
+        read1_start: int = random.randint(self.seq_start, self.seq_end)
         insert_size: int = int(round(normal(self.insert_mu, self.insert_sigma, 1)[0]))
 
         # Set direction as per the strand.
@@ -132,7 +140,7 @@ class Simulator:
 
         # Early guard against chromosomal boundaries. Discard if bounds are violated.
         read2_end: int = read1_start + directed_insert_size + (2 * directed_read_len)
-        if read2_end < 0 or read2_end > (self.seq_len + 1):
+        if read2_end < self.seq_start or read2_end > (self.seq_end + 1):
             return None
 
         # Set rest of read values.

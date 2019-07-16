@@ -45,6 +45,13 @@ def main(config_fpath: Path) -> None:
 
     # Generate new process for each chromosome to simulate separately.
     sim_conf: dict = config["simulator"]  # simulator params
+    try:
+        seq_start: int = sim_conf["seq_start"]
+        sim_window: int = sim_conf["sim_window"]
+    except KeyError:
+        seq_start = 0
+        sim_window = 0
+
     processes: Dict[str, Tuple[Simulator, Process]] = {}
     for key in chrom_seq.keys():
         simulator = Simulator(
@@ -56,6 +63,9 @@ def main(config_fpath: Path) -> None:
             insert_mu=sim_conf["mean_insert_size"],
             insert_sigma=sim_conf["insert_size_standard_deviation"],
             output_dir=Path(sim_conf["output_dir"]),
+            seq_start=seq_start,
+            sim_window=sim_window,
+            file_prefix=sim_conf["file_prefix"]
         )
         sim_proc: Process = Process(target=simulator.sim_all_reads, args=())
         processes[key] = (simulator, sim_proc)
