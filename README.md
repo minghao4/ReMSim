@@ -18,6 +18,9 @@ optional arguments:
 required arguments:
   -c CONFIG, --config CONFIG
                         Configuration JSON file path.
+
+  -f FUNCTION, --function FUNCTION
+                        Function to perform.
 ```
 
 ## TODO
