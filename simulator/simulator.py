@@ -1,97 +1,73 @@
 # simulator.py
 
-import random
-import time
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 
 from Bio.Seq import Seq
-from numpy.random import normal
 
-from .read import ReadPair, Read
-import utils.util as util
+from base import BaseSimulator
+from .read import FastqRead, FastqReadPair, VefReadPair
 
 
-class Simulator:
+class FastqSimulator(BaseSimulator):
     """
-    Simulate given number of reads for a given chromosome.
+    Simulate given number of fastq reads for a given chromosome.
 
     Attributes
     ----------
-    chrom : str
-        The chromosome to simulate reads from.
+    fq_1 : pathlib.Path
+        Fastq file containing the first read in each read pair.
 
-    seq : Bio.Seq.Seq
-        Biopython immutable sequence object; the DNA sequence of the current chromosome.
-
-    chrom_met_calls : tuple of dict of {int, int}
-        Methylation sites and states for each strand of the current chromosome.
-
-    num_reads : int
-        Number of read pairs to simulate.
-
-    read_len : int
-        Length of the simulated reads.
-
-    insert_mutupr designated mean insert size.
-
-    insert_sigma : int
-        User designated insert size standard deviation.
-
-    output_folder : pathlib.Path
-        Output directory path.
+    fq_2 : pathlib.Path
+        Fastq file containing the second read in each read pair.
 
     Methods
     -------
     sim_all_reads()
-        Simulate all read pairs.
+        Simulate all fastq read pairs.
     """
+
     def __init__(
         self,
+        source: str,
         chrom: str,
-        seq: Seq,
+        chrom_seq: Seq,
         chrom_met_calls: Tuple[Dict[int, int]],
         num_reads: int,
         read_len: int,
-        insert_mu: int,
-        insert_sigma: int,
+        inner_dist_mu: int,
+        inner_dist_sigma: int,
         output_dir: Path,
-        file_prefix: str,
-        seq_start: int = 0,
+        window_start: int = 0,
         sim_window: int = 0,
     ) -> None:
-        # Chromosome information.
-        self.chrom = chrom
-        self.sequence: str = seq
-        self.seq_start: int = seq_start
-
-        if sim_window:
-            self.seq_end: int = self.seq_start + sim_window
-        else:
-            self.seq_end = len(seq) - 1  # 0-based
-
-        # Methylation calls.
-        self.met_calls: Tuple[Dict[int, int]] = chrom_met_calls
-
-        # Read simulation properties.
-        self.num_reads: int = num_reads
-        self.read_len: int = read_len
-        self.insert_mu: int = insert_mu
-        self.insert_sigma: int = insert_sigma
 
         # Output file paths.
-        util.ensure_dir(output_dir)
-        self.fq_1: Path = output_dir.joinpath("{}_sim_reads_1.fq".format(self.file_prefix))
-        self.fq_2: Path = output_dir.joinpath("{}_sim_reads_2.fq".format(self.file_prefix))
+        self.fq_1: Path
+        self.fq_2: Path
+
+        super().__init__(
+            source=source,
+            chrom=chrom,
+            chrom_seq=chrom_seq,
+            chrom_met_calls=chrom_met_calls,
+            num_reads=num_reads,
+            read_len=read_len,
+            inner_dist_mu=inner_dist_mu,
+            inner_dist_sigma=inner_dist_sigma,
+            output_dir=output_dir,
+            window_start=window_start,
+            sim_window=sim_window,
+        )
 
     def sim_all_reads(self) -> None:
-        """Simulate all read pairs and write to file."""
+        """Simulate all fastq read pairs and write to file."""
         simmed_reads: int = 0  # accumulator
         while simmed_reads < self.num_reads:
             # TODO: [Logging]:: move to logger.
             print("Number of simmed reads: {}".format(simmed_reads))
 
-            curr_read_pair: ReadPair = self._sim_read()  # sim read pair
+            curr_read_pair: Optional[FastqReadPair] = self._sim_read()  # sim read pair
 
             # If pair is discarded, continue loop without updating accumulator.
             if curr_read_pair is None:
@@ -99,85 +75,157 @@ class Simulator:
                 continue
 
             # Create Read objects for each read in the pair.
-            read1: Read = curr_read_pair.create_read(self.chrom, 0, self.sequence)
-            read2: Read = curr_read_pair.create_read(self.chrom, 1, self.sequence)
+            curr_read_pair.set_read_objs(self.chrom_seq)
+            read1: FastqRead = curr_read_pair.read_objs[0]
+            read2: FastqRead = curr_read_pair.read_objs[1]
 
             # TODO: [Logging]:: move to logger.
             print("Accept")
-            print("Chrom: {}, strand: {}".format(read1.chrom, read1.strand))
-            print("Read 1: {} - {}".format(read1.start, read1.end))
+            print("Chrom: {}, strand: {}".format(curr_read_pair.chrom, curr_read_pair.strand))
+            print("Read 1: {} - {}".format(read1.read_start, read1.read_end))
             print("Read 1 number of met sites: {}".format(len(read1.met_calls)))
-            print("Read 2: {} - {}".format(read2.start, read2.end))
+            print("Read 2: {} - {}".format(read2.read_start, read2.read_end))
             print("Read 2 number of met sites: {}\n".format(len(read2.met_calls)))
 
             # Write read entry to output fastq file.
             with self.fq_1.open(mode="a") as f1, self.fq_2.open(mode="a") as f2:
-                f1.write(read1.fastq_entry())
-                f2.write(read2.fastq_entry())
+                fq_entries: Tuple[str, str] = curr_read_pair.entry()
+                f1.write(fq_entries[0])
+                f2.write(fq_entries[1])
 
             simmed_reads += 2  # update accumulator
 
-    def _sim_read(self) -> Optional[ReadPair]:
+    def _set_output_file_path(self) -> None:
+        """Set output file path."""
+        self.fq_1 = self.output_dir.joinpath("{}_sim_reads_1.fq".format(self.source))
+        self.fq_2 = self.output_dir.joinpath("{}_sim_reads_2.fq".format(self.source))
+
+    def _sim_read(self) -> Optional[FastqReadPair]:
         """
-        Simulate a pair of paired end reads.
+        Simulate a pair of paired-end fastq reads.
 
         Returns
         -------
-        read.PairedRead or None
-            A PairedRead if the read coordinates remain within chromosomal boundaires. None
+        read.FastqReadPair or None
+            A FastqReadPair if the read coordinates remain within chromosomal boundaries. None
             otherwise.
         """
-        random.seed(time.time())  # seed current time
+        read_pair_in: Optional[
+            Tuple[
+                str, Tuple[Tuple[int, int], Tuple[int, int]], Tuple[Dict[int, int], Dict[int, int]]
+            ]
+        ] = self._sim_properties()
 
-        # Simulate read properties.
-        strand: int = random.randint(0, 1)
-        read1_start: int = random.randint(self.seq_start, self.seq_end)
-        insert_size: int = int(round(normal(self.insert_mu, self.insert_sigma, 1)[0]))
-
-        # Set direction as per the strand.
-        directed_read_len: int = -self.read_len if strand else self.read_len
-        directed_insert_size: int = -insert_size if strand else insert_size
-
-        # Early guard against chromosomal boundaries. Discard if bounds are violated.
-        read2_end: int = read1_start + directed_insert_size + (2 * directed_read_len)
-        if read2_end < self.seq_start or read2_end > (self.seq_end + 1):
+        if read_pair_in is None:
+            return read_pair_in
+        elif len(read_pair_in[2][0]) == 0 or len(read_pair_in[2][1]) == 0:
             return None
+        else:
+            return FastqReadPair(
+                self.source, self.chrom, read_pair_in[0], read_pair_in[1], read_pair_in[2]
+            )
 
-        # Set rest of read values.
-        reads: Tuple[Tuple[int, int], Tuple[int, int]] = (
-            (read1_start, read1_start + directed_read_len),
-            (read2_end - directed_read_len, read2_end),
+
+class VefSimulator(BaseSimulator):
+    """
+    Simulate a given number of VEF read pairs for a given chromosome.
+
+    Attributes
+    ----------
+    output_file : pathlib.Path
+        Output VEF file.
+
+    Methods
+    -------
+    sim_all_reads()
+        Simulate all VEF read pairs.
+    """
+
+    def __init__(
+        self,
+        source: str,
+        chrom: str,
+        chrom_seq: Seq,
+        chrom_met_calls: Tuple[Dict[int, int]],
+        num_reads: int,
+        read_len: int,
+        inner_dist_mu: int,
+        inner_dist_sigma: int,
+        output_dir: Path,
+        window_start: int = 0,
+        sim_window: int = 0,
+    ) -> None:
+
+        # Output file path.
+        self.output_file: Path
+
+        super().__init__(
+            source=source,
+            chrom=chrom,
+            chrom_seq=chrom_seq,
+            chrom_met_calls=chrom_met_calls,
+            num_reads=num_reads,
+            read_len=read_len,
+            inner_dist_mu=inner_dist_mu,
+            inner_dist_sigma=inner_dist_sigma,
+            output_dir=output_dir,
+            window_start=window_start,
+            sim_window=sim_window,
         )
 
-        # Ensure ascending positional order (for start and end) for reverse strand.
-        if strand:
-            reads = (util.reverse_tuple_pair(reads[0]), util.reverse_tuple_pair(reads[1]))
+    def sim_all_reads(self) -> None:
+        """Simulate all VEF read pairs and write to file."""
+        simmed_reads: int = 0  # accumulator
+        while simmed_reads < self.num_reads:
+            # TODO: [Logging]:: move to logger.
+            print("Number of simmed reads: {}".format(simmed_reads))
 
-        # Extract subset of methylation calls.
-        read_met_calls: Dict[int, int] = self._subset_met_calls(strand, reads)
+            curr_read_pair: Optional[VefReadPair] = self._sim_read()  # sim read pair
 
-        return ReadPair(strand, reads, read_met_calls)
+            # If pair is discarded, continue loop without updating accumulator.
+            if curr_read_pair is None:
+                print("Discard\n")  # TODO: [Logging]:: move to logger
+                continue
 
-    def _subset_met_calls(
-        self, strand: int, reads: Tuple[Tuple[int, int], Tuple[int, int]]
-    ) -> Tuple[Dict[int, int], Dict[int, int]]:
+            # TODO: [Logging]:: move to logger.
+            print("Accept")
+            print("Chrom: {}, strand: {}".format(curr_read_pair.chrom, curr_read_pair.strand))
+            print("Read 1: {} - {}".format(curr_read_pair.reads[0][0], curr_read_pair.reads[0][1]))
+            print("Read 1 number of met sites: {}".format(len(curr_read_pair.read_met_calls[0])))
+            print("Read 2: {} - {}".format(curr_read_pair.reads[1][0], curr_read_pair.reads[1][1]))
+            print("Read 2 number of met sites: {}\n".format(len(curr_read_pair.read_met_calls[1])))
+
+            # Write read entry to output vef file.
+            with self.output_file.open(mode="a") as o_f:
+                o_f.write(curr_read_pair.entry())
+
+            simmed_reads += 2  # update accumulator...
+
+    def _set_output_file_path(self) -> None:
+        """Set the output file path."""
+        self.output_file = self.output_dir.joinpath("{}_sim_reads.vef".format(self.source))
+
+    def _sim_read(self) -> Optional[VefReadPair]:
         """
-        Discover the subset of methylation calls within a pair of paired end reads.
-
-        Parameters
-        ----------
-        strand : int
-            The strand the read pair is on. 0 for forward, 1 for reverse.
-
-        reads : tuple of tuple of int
-            A tuple of the read start-end position tuples.
+        Simulate a VEF read pair.
 
         Returns
         -------
-        tuple of dict of {int, int}
-            Dictionaries of position to methylation state of all positions within the paired reads.
+        read.VefReadPair or None
+            A VefReadPair if the read coordinates remain within chromosomal boundaires. None
+            otherwise.
         """
-        return (
-            util.subset_dict(reads[0], self.met_calls[strand]),
-            util.subset_dict(reads[1], self.met_calls[strand]),
-        )
+        read_pair_in: Optional[
+            Tuple[
+                str, Tuple[Tuple[int, int], Tuple[int, int]], Tuple[Dict[int, int], Dict[int, int]]
+            ]
+        ] = self._sim_properties()
+
+        if read_pair_in is None:
+            return read_pair_in
+        elif len(read_pair_in[2][0]) == 0 or len(read_pair_in[2][1]) == 0:
+            return None
+        else:
+            return VefReadPair(
+                self.source, self.chrom, read_pair_in[0], read_pair_in[1], read_pair_in[2]
+            )
