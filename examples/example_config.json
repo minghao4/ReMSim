@@ -3,6 +3,7 @@
         "mammal": true,
         "minimum_coverage": 1,
         "start_position": 0,
+        "cols_idx": [0, 1, 2, 3, 4, 5],
         "raw_methylation_calls": "examples/raw_met_calls.tsv",
         "intermediate_dir": "examples/",
         "met_reads_col_idx": null
@@ -11,10 +12,14 @@
     "reference": "examples/reference.fa",
 
     "simulator": {
+        "mode": "vef",
+        "source": "example",
         "read_count": 1000,
         "read_length": 150,
-        "mean_insert_size": 50,
-        "insert_size_standard_deviation": 5,
-        "output_dir": "examples/output/"
+        "mean_inner_distance": 50,
+        "inner_distance_standard_deviation": 5,
+        "output_dir": "examples/output/",
+        "seq_start": 0,
+        "sim_window": 0
     }
 }

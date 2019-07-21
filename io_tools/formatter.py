@@ -2,7 +2,7 @@
 
 import csv
 from pathlib import Path
-from typing import List, NoReturn, Optional, Union
+from typing import List, NoReturn, Optional
 
 from utils.util import ensure_dir
 
@@ -15,7 +15,7 @@ def fmt_met_calls(
     in_fpath: Path,
     out_dpath: Path,
     met_reads_col: Optional[int] = None,
-) -> Union[NoReturn, Path]:
+) -> Optional[NoReturn]:
     """
     Format methylation calls TSV file.
 
@@ -114,8 +114,6 @@ def fmt_met_calls(
                 new_row: list = [chrom, pos, strand, context, coverage, methylation_state]
                 _rm_context_col(mammal, 3, new_header)
                 wtr.writerow(new_row)
-
-    return out_fpath
 
 
 def _rm_context_col(mammal: bool, context_col_idx: int, row: list) -> None:

@@ -1,49 +1,39 @@
 # read.py
 
-from typing import Dict, List, NoReturn, Tuple, Union
+from typing import Dict, List, NoReturn, Optional, Tuple, Union
 
 from Bio.Seq import Seq, MutableSeq
 
+from base import BaseRead, BaseReadPair
 
-class Read:
+
+class FastqRead(BaseRead):
     """
-    A sequence read.
+    A FastQ sequencing read.
 
     Attributes
     ----------
-    chrom : str
-        The chromosome the read is on.
-
-    strand : int
-        The strand the read is on. 0 for forward, 1 for reverse.
-
-    start_end : tuple of int
-        The start and end positions of the read. [start, end)
-
-    met_calls : dict of {int, int}
-        A dictionary of methylation calls. Positional keys and methylation state values.
-
     seq : Bio.Seq.MutableSeq
         The mutable sequence object of the read.
 
     Methods
     -------
     fastq_entry()
-        Creates a FASTQ entry for the read.
+        Creates a FastQ entry for the read.
     """
+
     def __init__(
         self,
+        source: str,
         chrom: str,
         strand: int,
         start_end: Tuple[int],
         met_calls: Dict[int, int],
         seq: MutableSeq,
     ) -> None:
-        self.chrom: str = chrom
-        self.strand: int = strand
-        self.start: int = start_end[0]
-        self.end: int = start_end[1]
-        self.met_calls: Dict[int, int] = met_calls
+        super().__init__(
+            source=source, chrom=chrom, strand=strand, start_end=start_end, met_calls=met_calls
+        )
         self.seq: MutableSeq = seq
 
     def fastq_entry(self) -> str:
@@ -66,7 +56,7 @@ class Read:
         """Updates read sequence methylation states based on methylation calls."""
         met_states: List[chr] = ["T", "C"]
         for k, v in self.met_calls.items():
-            self.seq[k - self.start] = met_states[v]
+            self.seq[k - self.read_start] = met_states[v]
 
         # Reverse the complemented strand so that it's 5' -> 3'.
         if self.strand:
@@ -87,7 +77,7 @@ class Read:
         strands: List[str] = ["forward", "reverse"]
         sorted_met_calls: List[int] = sorted(self.met_calls.keys())
         return "@{}, {} strand: {}-{}, methylation sites: {}".format(
-            self.chrom, strands[self.strand], self.start, self.end, sorted_met_calls
+            self.chrom, strands[self.strand], self.read_start, self.read_end, sorted_met_calls
         )
 
     def _read_qual(self) -> str:
@@ -102,74 +92,122 @@ class Read:
         """
         return "I" * len(self.seq)
 
-    # TODO: [repr]:: add repr method to Read.
 
-
-class ReadPair:
-    """
-    A pair of paired end reads on the same strand.
-
-    Attributes
-    ----------
-    strand : int
-        The strand the reads are on. 0 for forward, 1 for reverse.
-
-    reads : tuple of tuple of int
-        A tuple of the read start-end position tuples.
-
-    read_met_calls : tuple of dict of {int, int}
-        Methylation states at methylation sites within each of the reads.
-
-    Methods
-    -------
-    create_read()
-        Create a Read object for a specified read in the read pair.
-    """
+class FastqReadPair(BaseReadPair):
+    """A pair of FastQ paired-end reads on the same strand."""
 
     def __init__(
         self,
+        source: str,
+        chrom: str,
         strand: int,
         reads: Tuple[Tuple[int, int], Tuple[int, int]],
         read_met_calls: Tuple[Dict[int, int], Dict[int, int]],
     ) -> None:
-        self.strand: int = strand
-        self.reads: Tuple[Tuple[int, int], Tuple[int, int]] = reads
-        self.read_met_calls: Tuple[Dict[int, int], Dict[int, int]] = read_met_calls
+        super().__init__(source, chrom, strand, reads, read_met_calls)
+        self.read_objs: Tuple[FastqRead, FastqRead]
 
-    def create_read(self, chrom: str, read: int, chrom_seq: Seq) -> Union[NoReturn, Read]:
+    def set_read_objs(self, chrom_seq: Seq) -> None:
         """
-        Create a Read objected from the specified read in the read pair.
+        Sets the FastQ read objects for the read pair.
 
         Parameters
         ----------
-        chrom : str
-            The chromosome the read pair is on.
-
-        read : int
-            Which read in the pair to create the Read object from. 0 or 1 only.
-
         chrom_seq : Bio.Seq.Seq
             The sequence of the chromosome.
+        """
+        # Set sequences.
+        read_seqs: List[MutableSeq] = [
+            chrom_seq[self.reads[0][0] : self.reads[0][1]].tomutable(),
+            chrom_seq[self.reads[1][0] : self.reads[1][1]].tomutable(),
+        ]
+
+        # Reverse complement if reverse strand.
+        if self.strand:
+            read_seqs[0].complement()
+            read_seqs[1].complement()
+
+        # Set read objects.
+        self.read_objs = (
+            FastqRead(
+                source=self.source,
+                chrom=self.chrom,
+                strand=self.strand,
+                start_end=self.reads[0],
+                met_calls=self.read_met_calls[0],
+                seq=read_seqs[0],
+            ),
+            FastqRead(
+                source=self.source,
+                chrom=self.chrom,
+                strand=self.strand,
+                start_end=self.reads[1],
+                met_calls=self.read_met_calls[1],
+                seq=read_seqs[1],
+            ),
+        )
+
+    def entry(self) -> Tuple[str, str]:
+        """
+        Creates the Fastq entries for the read pair.
 
         Returns
         -------
-        Read
-            Read object.
-
-        Throws
-        ------
-        ValueError
-            Read param isn't 0 or 1.
+        tuple of str
+            A tuple of the Fastq read entries.
         """
-        if read not in [0, 1]:
-            raise ValueError("Invalid read in pair specified.")
+        return self.read_objs[0].fastq_entry(), self.read_objs[1].fastq_entry()
 
-        curr_read: Tuple[int, int] = self.reads[read]
 
-        read_seq: MutableSeq = chrom_seq[curr_read[0] : curr_read[1]].tomutable()
-        if self.strand:
-            read_seq.complement()
+class VefReadPair(BaseReadPair):
+    """A pair of VEF paired-end reads on the same strand."""
 
-        return Read(chrom, self.strand, curr_read, self.read_met_calls[read], read_seq)
+    def __init__(
+        self,
+        source: str,
+        chrom: str,
+        strand: int,
+        reads: Tuple[Tuple[int, int], Tuple[int, int]],
+        read_met_calls: Tuple[Dict[int, int], Dict[int, int]],
+    ) -> None:
+        super().__init__(source, chrom, strand, reads, read_met_calls)
+        self.var_calls: Dict[int, int] = {}
+        self._set_var_calls()
 
-    # TODO: [repr]:: add repr method to ReadPair.
+    def _set_var_calls(self) -> None:
+        """
+        Merge methylation calls from the two reads and convert the values to variant calls.
+
+        i.e.:
+        Methylation state = 1 means methylated, cytosine (reference); equivalent to variant call
+        = 0.
+
+        Methylation state = 0 means unmethylated, thymine (alternate); equivalent to variant call
+        = 1.
+        """
+        merged_met_calls: Dict[int, int] = {**self.read_met_calls[0], **self.read_met_calls[1]}
+        met_to_var: Tuple[int, int] = (1, 0)  # call by index to invert
+        self.var_calls = dict((k, met_to_var[merged_met_calls[k]]) for k in merged_met_calls.keys())
+
+    def entry(self) -> str:
+        return "\n{}\t{}\t//\t{}".format(
+            self._read_pair_name(), self._read_pair_alleles(), self._read_pair_coordinates()
+        )
+
+    def _read_pair_name(self) -> str:
+        strands: List[str] = ["forward", "reverse"]
+        return "@Haplotype_{}_chrom{}_{}_strand:{}_{}".format(
+            self.source, self.chrom, strands[self.strand], self.reads[0][0], self.reads[1][0]
+        )
+
+    def _read_pair_alleles(self) -> str:
+        alleles: str = ""
+        for k in sorted(self.var_calls.keys()):
+            alleles += "{}={};".format(k, self.var_calls[k])
+
+        return alleles
+
+    def _read_pair_coordinates(self) -> str:
+        return "{}\t{}\t{}\t{}".format(
+            self.reads[0][0], self.reads[0][1], self.reads[1][0], self.reads[1][1]
+        )
