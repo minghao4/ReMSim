@@ -12,13 +12,14 @@
     "reference": "examples/reference.fa",
 
     "simulator": {
+        "mode": "vef",
+        "source": "example",
         "read_count": 1000,
         "read_length": 150,
-        "mean_insert_size": 50,
-        "insert_size_standard_deviation": 5,
+        "mean_inner_distance": 50,
+        "inner_distance_standard_deviation": 5,
         "output_dir": "examples/output/",
         "seq_start": 0,
-        "sim_window": 0,
-        "file_prefix": ""
+        "sim_window": 0
     }
 }
