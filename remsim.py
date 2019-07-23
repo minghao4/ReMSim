@@ -34,6 +34,7 @@ def simulating(
     sim_conf: dict,
     source: Optional[str],
     read_count: Optional[str],
+    output_dir: Optional[Path],
     seq_start: Optional[int],
     window_len: Optional[int],
     prefix: Optional[str],
@@ -52,6 +53,8 @@ def simulating(
         source = sim_conf["source"]
     if read_count is None:
         read_count = sim_conf["read_count"]
+    if output_dir is None:
+        output_dir = Path(sim_conf["output_dir"])
     if seq_start is not None:
         window_start = seq_start
     if window_len is not None:
@@ -65,7 +68,7 @@ def simulating(
         "read_len": sim_conf["read_length"],
         "inner_dist_mu": sim_conf["mean_inner_distance"],
         "inner_dist_sigma": sim_conf["inner_distance_standard_deviation"],
-        "output_dir": Path(sim_conf["output_dir"]),
+        "output_dir": output_dir,
         "window_start": window_start,
         "sim_window": sim_window,
         "file_prefix": prefix,
@@ -102,6 +105,7 @@ def main(
     ref_fpath: Path,
     source: Optional[str] = None,
     read_count: Optional[int] = None,
+    output_dir: Optional[Path] = None,
     seq_start: Optional[int] = None,
     window_len: Optional[int] = None,
     prefix: Optional[str] = None,
@@ -139,7 +143,17 @@ def main(
         # Generate new process for each chromosome to simulate separately.
         sim_conf: dict = config["simulator"]  # simulator params
         print("Creating simulator objects...")  # TODO: [Logging]:: move to logger
-        simulating(sim_conf, prefix, seq_start, window_len, chrom_seqs, chrom_met_calls)
+        simulating(
+            sim_conf,
+            source,
+            read_count,
+            output_dir,
+            seq_start,
+            window_len,
+            prefix,
+            chrom_seqs,
+            chrom_met_calls,
+        )
         print("Simulation end.\n")  # TODO: [Logging]:: move to logger
 
 
@@ -168,6 +182,9 @@ if __name__ == "__main__":
         "-rc", "--read_count", default=None, type=int, help="Read count.", required=False
     )
     args.add_argument(
+        "-o", "--output", default=None, type=str, help="Output directory path.", required=False
+    )
+    args.add_argument(
         "-s", "--seq_start", default=None, type=int, help="Simulation window start.", required=False
     )
     args.add_argument(
@@ -183,6 +200,7 @@ if __name__ == "__main__":
         Path(parsed_args.reference),
         parsed_args.source,
         parsed_args.read_count,
+        Path(parsed_args.output),
         parsed_args.seq_start,
         parsed_args.window_len,
         parsed_args.prefix,
