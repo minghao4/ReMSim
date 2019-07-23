@@ -32,6 +32,11 @@ def formatting(fmt_conf: dict) -> None:
 
 def simulating(
     sim_conf: dict,
+    source: Optional[str],
+    read_count: Optional[str],
+    seq_start: Optional[int],
+    window_len: Optional[int],
+    prefix: Optional[str],
     chrom_seqs: Dict[str, Seq],
     chrom_met_calls: Dict[str, Tuple[Dict[int, int], Dict[int, int]]],
 ) -> None:
@@ -43,15 +48,27 @@ def simulating(
         window_start = 0
         sim_window = 0
 
+    if source is None:
+        source = sim_conf["source"]
+    if read_count is None:
+        read_count = sim_conf["read_count"]
+    if seq_start is not None:
+        window_start = seq_start
+    if window_len is not None:
+        sim_window = window_len
+    if prefix is None:
+        prefix = sim_conf["file_prefix"]
+
     sim_input: dict = {
-        "source": sim_conf["source"],
-        "num_reads": sim_conf["read_count"],
+        "source": source,
+        "num_reads": read_count,
         "read_len": sim_conf["read_length"],
         "inner_dist_mu": sim_conf["mean_inner_distance"],
         "inner_dist_sigma": sim_conf["inner_distance_standard_deviation"],
         "output_dir": Path(sim_conf["output_dir"]),
         "window_start": window_start,
         "sim_window": sim_window,
+        "file_prefix": prefix,
     }
 
     processes: Dict[str, Tuple[BaseSimulator, Process]] = {}
@@ -79,7 +96,16 @@ def simulating(
         sim_proc[1].join()
 
 
-def main(config_fpath: Path, function: str) -> Optional[NoReturn]:
+def main(
+    config_fpath: Path,
+    function: str,
+    ref_fpath: Path,
+    source: Optional[str] = None,
+    read_count: Optional[int] = None,
+    seq_start: Optional[int] = None,
+    window_len: Optional[int] = None,
+    prefix: Optional[str] = None,
+) -> Optional[NoReturn]:
     """
     """
     config: dict = parse_config(config_fpath)
@@ -105,7 +131,7 @@ def main(config_fpath: Path, function: str) -> Optional[NoReturn]:
         # Store reference genome fasta info and methylation calls info by chromosome in
         # dictionaries.
         print("Reading reference genome and processed methylation calls...")
-        chrom_seqs: Dict[str, Seq] = fa_parser(Path(config["reference"]))
+        chrom_seqs: Dict[str, Seq] = fa_parser(ref_fpath)
         chrom_met_calls: Dict[str, Tuple[Dict[int, int], Dict[int, int]]] = met_parser(
             met_calls_fpath
         )
@@ -113,7 +139,7 @@ def main(config_fpath: Path, function: str) -> Optional[NoReturn]:
         # Generate new process for each chromosome to simulate separately.
         sim_conf: dict = config["simulator"]  # simulator params
         print("Creating simulator objects...")  # TODO: [Logging]:: move to logger
-        simulating(sim_conf, chrom_seqs, chrom_met_calls)
+        simulating(sim_conf, prefix, seq_start, window_len, chrom_seqs, chrom_met_calls)
         print("Simulation end.\n")  # TODO: [Logging]:: move to logger
 
 
@@ -131,5 +157,33 @@ if __name__ == "__main__":
     required.add_argument(
         "-f", "--function", default=None, type=str, help="Function to perform.", required=True
     )
+    required.add_argument(
+        "-r", "--reference", default=None, type=str, help="Reference fasta.", required=True
+    )
 
-    main(Path(args.parse_args().config), args.parse_args().function)
+    args.add_argument(
+        "-sr", "--source", default=None, type=str, help="Source organism.", required=False
+    )
+    args.add_argument(
+        "-rc", "--read_count", default=None, type=int, help="Read count.", required=False
+    )
+    args.add_argument(
+        "-s", "--seq_start", default=None, type=int, help="Simulation window start.", required=False
+    )
+    args.add_argument(
+        "-l", "--window_len", default=None, type=int, help="Simulation window size.", required=False
+    )
+    args.add_argument("-p", "--prefix", default=None, type=str, help="File prefix.", required=False)
+
+    parsed_args = args.parse_args()
+
+    main(
+        Path(parsed_args.config),
+        parsed_args.function,
+        Path(parsed_args.reference),
+        parsed_args.source,
+        parsed_args.read_count,
+        parsed_args.seq_start,
+        parsed_args.window_len,
+        parsed_args.prefix,
+    )

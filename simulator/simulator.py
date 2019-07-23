@@ -38,6 +38,7 @@ class FastqSimulator(BaseSimulator):
         inner_dist_mu: int,
         inner_dist_sigma: int,
         output_dir: Path,
+        file_prefix: str,
         window_start: int = 0,
         sim_window: int = 0,
     ) -> None:
@@ -56,6 +57,7 @@ class FastqSimulator(BaseSimulator):
             inner_dist_mu=inner_dist_mu,
             inner_dist_sigma=inner_dist_sigma,
             output_dir=output_dir,
+            file_prefix=file_prefix,
             window_start=window_start,
             sim_window=sim_window,
         )
@@ -97,8 +99,8 @@ class FastqSimulator(BaseSimulator):
 
     def _set_output_file_path(self) -> None:
         """Set output file path."""
-        self.fq_1 = self.output_dir.joinpath("{}_sim_reads_1.fq".format(self.source))
-        self.fq_2 = self.output_dir.joinpath("{}_sim_reads_2.fq".format(self.source))
+        self.fq_1 = self.output_dir.joinpath("{}_sim_reads_1.fq".format(self.file_prefix))
+        self.fq_2 = self.output_dir.joinpath("{}_sim_reads_2.fq".format(self.file_prefix))
 
     def _sim_read(self) -> Optional[FastqReadPair]:
         """
@@ -152,6 +154,7 @@ class VefSimulator(BaseSimulator):
         inner_dist_mu: int,
         inner_dist_sigma: int,
         output_dir: Path,
+        file_prefix: str,
         window_start: int = 0,
         sim_window: int = 0,
     ) -> None:
@@ -169,6 +172,7 @@ class VefSimulator(BaseSimulator):
             inner_dist_mu=inner_dist_mu,
             inner_dist_sigma=inner_dist_sigma,
             output_dir=output_dir,
+            file_prefix=file_prefix,
             window_start=window_start,
             sim_window=sim_window,
         )
@@ -203,7 +207,7 @@ class VefSimulator(BaseSimulator):
 
     def _set_output_file_path(self) -> None:
         """Set the output file path."""
-        self.output_file = self.output_dir.joinpath("{}_sim_reads.vef".format(self.source))
+        self.output_file = self.output_dir.joinpath("{}_sim_reads.vef".format(self.file_prefix))
 
     def _sim_read(self) -> Optional[VefReadPair]:
         """
@@ -223,7 +227,7 @@ class VefSimulator(BaseSimulator):
 
         if read_pair_in is None:
             return read_pair_in
-        elif len(read_pair_in[2][0]) == 0 or len(read_pair_in[2][1]) == 0:
+        elif len(read_pair_in[2][0]) == 0 and len(read_pair_in[2][1]) == 0:
             return None
         else:
             return VefReadPair(

@@ -9,8 +9,6 @@
         "met_reads_col_idx": null
     },
 
-    "reference": "examples/reference.fa",
-
     "simulator": {
         "mode": "vef",
         "source": "example",
@@ -20,6 +18,7 @@
         "inner_distance_standard_deviation": 5,
         "output_dir": "examples/output/",
         "seq_start": 0,
-        "sim_window": 0
+        "sim_window": 0,
+        "file_prefix": "sim"
     }
 }

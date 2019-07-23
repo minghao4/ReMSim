@@ -19,6 +19,9 @@ class BaseSimulator:
 
     Attributes
     ----------
+    source : str
+        The source organism.
+
     chrom : str
         The chromosome to simulate data from.
 
@@ -37,13 +40,16 @@ class BaseSimulator:
     inner_dist_sigma : float
         User designated standard deviation of the inner distance.
 
-    window_start : int (optional)
+    window_start : int
         The start position (0-based) of the window to simulate reads from. If not specified, set to
         beginning of chromosome.
 
-    window_end : int (optional)
+    window_end : int
         The end position (0-based) of the window to simulate reads from. If not specified, set to
         the end of the chromosome.
+
+    file_prefix : str
+        Output file prefix.
 
     Methods
     -------
@@ -62,6 +68,7 @@ class BaseSimulator:
         inner_dist_mu: int,
         inner_dist_sigma: int,
         output_dir: Path,
+        file_prefix: str,
         window_start: int = 0,
         sim_window: int = 0,
     ) -> None:
@@ -79,6 +86,7 @@ class BaseSimulator:
         # Output file paths.
         self.source: str = source
         self.output_dir: Path = output_dir
+        self.file_prefix: str = file_prefix
         util.ensure_dir(output_dir)
         self._set_output_file_path()
 
