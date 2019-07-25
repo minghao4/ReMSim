@@ -1,5 +1,6 @@
 # simulator.py
 
+import csv
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 
@@ -7,6 +8,7 @@ from Bio.Seq import Seq
 
 from base import BaseSimulator
 from .read import FastqRead, FastqReadPair, VefReadPair
+from utils import ensure_dir
 
 
 class FastqSimulator(BaseSimulator):
@@ -65,42 +67,43 @@ class FastqSimulator(BaseSimulator):
     def sim_all_reads(self) -> None:
         """Simulate all fastq read pairs and write to file."""
         simmed_reads: int = 0  # accumulator
-        while simmed_reads < self.num_reads:
-            # TODO: [Logging]:: move to logger.
-            print("Number of simmed reads: {}".format(simmed_reads))
+        with self.fq_1.open(mode="a") as f1, self.fq_2.open(mode="w") as f2:
+            while simmed_reads < self.num_reads:
+                # TODO: [Logging]:: move to logger.
+                # print("Number of simmed reads: {}".format(simmed_reads))
 
-            curr_read_pair: Optional[FastqReadPair] = self._sim_read()  # sim read pair
+                curr_read_pair: Optional[FastqReadPair] = self._sim_read()  # sim read pair
 
-            # If pair is discarded, continue loop without updating accumulator.
-            if curr_read_pair is None:
-                print("Discard\n")  # TODO: [Logging]:: move to logger
-                continue
+                # If pair is discarded, continue loop without updating accumulator.
+                if curr_read_pair is None:
+                    # print("Discard\n")  # TODO: [Logging]:: move to logger
+                    continue
 
-            # Create Read objects for each read in the pair.
-            curr_read_pair.set_read_objs(self.chrom_seq)
-            read1: FastqRead = curr_read_pair.read_objs[0]
-            read2: FastqRead = curr_read_pair.read_objs[1]
+                # Create Read objects for each read in the pair.
+                curr_read_pair.set_read_objs(self.chrom_seq)
+                # read1: FastqRead = curr_read_pair.read_objs[0]
+                # read2: FastqRead = curr_read_pair.read_objs[1]
 
-            # TODO: [Logging]:: move to logger.
-            print("Accept")
-            print("Chrom: {}, strand: {}".format(curr_read_pair.chrom, curr_read_pair.strand))
-            print("Read 1: {} - {}".format(read1.read_start, read1.read_end))
-            print("Read 1 number of met sites: {}".format(len(read1.met_calls)))
-            print("Read 2: {} - {}".format(read2.read_start, read2.read_end))
-            print("Read 2 number of met sites: {}\n".format(len(read2.met_calls)))
+                # TODO: [Logging]:: move to logger.
+                # print("Accept")
+                # print("Chrom: {}, strand: {}".format(curr_read_pair.chrom, curr_read_pair.strand))
+                # print("Read 1: {} - {}".format(read1.read_start, read1.read_end))
+                # print("Read 1 number of met sites: {}".format(len(read1.met_calls)))
+                # print("Read 2: {} - {}".format(read2.read_start, read2.read_end))
+                # print("Read 2 number of met sites: {}\n".format(len(read2.met_calls)))
 
-            # Write read entry to output fastq file.
-            with self.fq_1.open(mode="a") as f1, self.fq_2.open(mode="a") as f2:
+                # Write read entry to output fastq file.
                 fq_entries: Tuple[str, str] = curr_read_pair.entry()
                 f1.write(fq_entries[0])
                 f2.write(fq_entries[1])
 
-            simmed_reads += 2  # update accumulator
+                simmed_reads += 2  # update accumulator
 
     def _set_output_file_path(self) -> None:
         """Set output file path."""
-        self.fq_1 = self.output_dir.joinpath("{}_sim_reads_1.fq".format(self.file_prefix))
-        self.fq_2 = self.output_dir.joinpath("{}_sim_reads_2.fq".format(self.file_prefix))
+        ensure_dir(self.output_dir, "fq")
+        self.fq_1 = self.output_dir.joinpath("fq/{}_1.fq".format(self.file_prefix))
+        self.fq_2 = self.output_dir.joinpath("fq/{}_2.fq".format(self.file_prefix))
 
     def _sim_read(self) -> Optional[FastqReadPair]:
         """
@@ -180,34 +183,50 @@ class VefSimulator(BaseSimulator):
     def sim_all_reads(self) -> None:
         """Simulate all VEF read pairs and write to file."""
         simmed_reads: int = 0  # accumulator
-        while simmed_reads < self.num_reads:
-            # TODO: [Logging]:: move to logger.
-            print("Number of simmed reads: {}".format(simmed_reads))
+        with self.output_file.open(mode="a") as o_f:
+            wtr = csv.writer(o_f, delimiter="\t")
+            while simmed_reads < self.num_reads:
+                # TODO: [Logging]:: move to logger.
+                # print("Number of simmed reads: {}".format(simmed_reads))
 
-            curr_read_pair: Optional[VefReadPair] = self._sim_read()  # sim read pair
+                curr_read_pair: Optional[VefReadPair] = self._sim_read()  # sim read pair
 
-            # If pair is discarded, continue loop without updating accumulator.
-            if curr_read_pair is None:
-                print("Discard\n")  # TODO: [Logging]:: move to logger
-                continue
+                # If pair is discarded, continue loop without updating accumulator.
+                if curr_read_pair is None:
+                    # print("Discard\n")  # TODO: [Logging]:: move to logger
+                    continue
 
-            # TODO: [Logging]:: move to logger.
-            print("Accept")
-            print("Chrom: {}, strand: {}".format(curr_read_pair.chrom, curr_read_pair.strand))
-            print("Read 1: {} - {}".format(curr_read_pair.reads[0][0], curr_read_pair.reads[0][1]))
-            print("Read 1 number of met sites: {}".format(len(curr_read_pair.read_met_calls[0])))
-            print("Read 2: {} - {}".format(curr_read_pair.reads[1][0], curr_read_pair.reads[1][1]))
-            print("Read 2 number of met sites: {}\n".format(len(curr_read_pair.read_met_calls[1])))
+                # TODO: [Logging]:: move to logger.
+                # print("Accept")
+                # print("Chrom: {}, strand: {}".format(curr_read_pair.chrom, curr_read_pair.strand))
+                # print(
+                #     "Read 1: {} - {}".format(
+                #         curr_read_pair.reads[0][0], curr_read_pair.reads[0][1]
+                #     )
+                # )
+                # print(
+                #     "Read 1 number of met sites: {}".format(len(curr_read_pair.read_met_calls[0]))
+                # )
+                # print(
+                #     "Read 2: {} - {}".format(
+                #         curr_read_pair.reads[1][0], curr_read_pair.reads[1][1]
+                #     )
+                # )
+                # print(
+                #     "Read 2 number of met sites: {}\n".format(
+                #         len(curr_read_pair.read_met_calls[1])
+                #     )
+                # )
 
-            # Write read entry to output vef file.
-            with self.output_file.open(mode="a") as o_f:
-                o_f.write(curr_read_pair.entry())
+                # Write read entry to output vef file.
+                wtr.writerow(curr_read_pair.entry())
 
-            simmed_reads += 2  # update accumulator...
+                simmed_reads += 2  # update accumulator...
 
     def _set_output_file_path(self) -> None:
         """Set the output file path."""
-        self.output_file = self.output_dir.joinpath("{}_sim_reads.vef".format(self.file_prefix))
+        ensure_dir(Path(self.output_dir, "vef"))
+        self.output_file = self.output_dir.joinpath("vef/{}.vef".format(self.file_prefix))
 
     def _sim_read(self) -> Optional[VefReadPair]:
         """

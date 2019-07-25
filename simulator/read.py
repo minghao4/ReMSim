@@ -171,28 +171,14 @@ class VefReadPair(BaseReadPair):
         read_met_calls: Tuple[Dict[int, int], Dict[int, int]],
     ) -> None:
         super().__init__(source, chrom, strand, reads, read_met_calls)
-        self.var_calls: Dict[int, int] = {}
-        self._set_var_calls()
+        self.merged_met_calls: Dict[int, int] = {**self.read_met_calls[0], **self.read_met_calls[1]}
 
-    def _set_var_calls(self) -> None:
-        """
-        Merge methylation calls from the two reads and convert the values to variant calls.
-
-        i.e.:
-        Methylation state = 1 means methylated, cytosine (reference); equivalent to variant call
-        = 0.
-
-        Methylation state = 0 means unmethylated, thymine (alternate); equivalent to variant call
-        = 1.
-        """
-        merged_met_calls: Dict[int, int] = {**self.read_met_calls[0], **self.read_met_calls[1]}
-        met_to_var: Tuple[int, int] = (1, 0)  # call by index to invert
-        self.var_calls = dict((k, met_to_var[merged_met_calls[k]]) for k in merged_met_calls.keys())
-
-    def entry(self) -> str:
-        return "\n{}\t{}\t//\t{}".format(
-            self._read_pair_name(), self._read_pair_alleles(), self._read_pair_coordinates()
-        )
+    def entry(self) -> List[str]:
+        return [
+            self._read_pair_name(),
+            self._read_pair_alleles(),
+            "//",
+        ] + self._read_pair_coordinates()
 
     def _read_pair_name(self) -> str:
         strands: List[str] = ["forward", "reverse"]
@@ -202,12 +188,10 @@ class VefReadPair(BaseReadPair):
 
     def _read_pair_alleles(self) -> str:
         alleles: str = ""
-        for k in sorted(self.var_calls.keys()):
-            alleles += "{}={};".format(k, self.var_calls[k])
+        for k in sorted(self.merged_met_calls.keys()):
+            alleles += "{}={};".format(k, self.merged_met_calls[k])
 
         return alleles
 
-    def _read_pair_coordinates(self) -> str:
-        return "{}\t{}\t{}\t{}".format(
-            self.reads[0][0], self.reads[0][1], self.reads[1][0], self.reads[1][1]
-        )
+    def _read_pair_coordinates(self) -> List[str]:
+        return [self.reads[0][0], self.reads[0][1], self.reads[1][0], self.reads[1][1]]

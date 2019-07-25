@@ -43,7 +43,7 @@ def simulating(
 ) -> None:
     """"""
     try:
-        window_start: int = sim_conf["window_start"]
+        window_start: int = sim_conf["seq_start"]
         sim_window: int = sim_conf["sim_window"]
     except KeyError:
         window_start = 0
@@ -87,7 +87,7 @@ def simulating(
         sim_proc: Process = Process(target=simulator.sim_all_reads, args=())
         processes[key] = (simulator, sim_proc)
 
-    print("Simulation start...")  # TODO: [Logging]:: move to logger
+    # print("Simulation start...")  # TODO: [Logging]:: move to logger
 
     # Start processes.
     sim_proc: Tuple[BaseSimulator, Process]
@@ -118,9 +118,9 @@ def main(
 
     fmt_conf: dict = config["formatter"]
     if function == "format":
-        print("Begin formatting...")  # TODO: [Logging]:: move to logger
+        # print("Begin formatting...")  # TODO: [Logging]:: move to logger
         formatting(fmt_conf)
-        print("Formatting end.\n")  # TODO: [Logging]:: move to logger
+        # print("Formatting end.\n")  # TODO: [Logging]:: move to logger
 
     else:
         if config["simulator"]["mode"] not in ["vef", "fastq"]:
@@ -134,7 +134,7 @@ def main(
 
         # Store reference genome fasta info and methylation calls info by chromosome in
         # dictionaries.
-        print("Reading reference genome and processed methylation calls...")
+        # print("Reading reference genome and processed methylation calls...")
         chrom_seqs: Dict[str, Seq] = fa_parser(ref_fpath)
         chrom_met_calls: Dict[str, Tuple[Dict[int, int], Dict[int, int]]] = met_parser(
             met_calls_fpath
@@ -142,19 +142,19 @@ def main(
 
         # Generate new process for each chromosome to simulate separately.
         sim_conf: dict = config["simulator"]  # simulator params
-        print("Creating simulator objects...")  # TODO: [Logging]:: move to logger
+        # print("Creating simulator objects...")  # TODO: [Logging]:: move to logger
         simulating(
-            sim_conf,
-            source,
-            read_count,
-            output_dir,
-            seq_start,
-            window_len,
-            prefix,
-            chrom_seqs,
-            chrom_met_calls,
+            sim_conf=sim_conf,
+            source=source,
+            read_count=read_count,
+            output_dir=output_dir,
+            seq_start=seq_start,
+            window_len=window_len,
+            prefix=prefix,
+            chrom_seqs=chrom_seqs,
+            chrom_met_calls=chrom_met_calls,
         )
-        print("Simulation end.\n")  # TODO: [Logging]:: move to logger
+        # print("Simulation end.\n")  # TODO: [Logging]:: move to logger
 
 
 if __name__ == "__main__":
@@ -194,13 +194,18 @@ if __name__ == "__main__":
 
     parsed_args = args.parse_args()
 
+    try:
+        output: Optional[Path] = Path(parsed_args.output)
+    except TypeError:
+        output = None
+
     main(
         Path(parsed_args.config),
         parsed_args.function,
         Path(parsed_args.reference),
         parsed_args.source,
         parsed_args.read_count,
-        Path(parsed_args.output),
+        output,
         parsed_args.seq_start,
         parsed_args.window_len,
         parsed_args.prefix,
