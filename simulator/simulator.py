@@ -151,7 +151,7 @@ class VefSimulator(BaseSimulator):
         source: str,
         chrom: str,
         chrom_seq: Seq,
-        chrom_met_calls: Tuple[Dict[int, int]],
+        chrom_met_calls: Tuple[Dict[int, int], Dict[int, int]],
         num_reads: int,
         read_len: int,
         inner_dist_mu: int,

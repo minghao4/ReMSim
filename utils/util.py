@@ -22,7 +22,9 @@ def subset_dict(key_range: Tuple[int, int], original_dict: Dict[int, Any]) -> Di
         A subset dictionary with only entries where the keys lie within the key range bounds.
     """
     subset_dict: Dict[int, Any] = dict(
-        (k, original_dict[k]) for k in original_dict.keys() if key_range[0] <= k < key_range[1]
+        (k, original_dict[k])
+        for k in sorted(original_dict.keys())
+        if key_range[0] <= k < key_range[1]
     )
 
     return subset_dict

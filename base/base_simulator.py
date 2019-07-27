@@ -62,7 +62,7 @@ class BaseSimulator:
         source: str,
         chrom: str,
         chrom_seq: Seq,
-        chrom_met_calls: Tuple[Dict[int, int]],
+        chrom_met_calls: Tuple[Dict[int, int], Dict[int, int]],
         num_reads: int,
         read_len: int,
         inner_dist_mu: int,
@@ -192,6 +192,6 @@ class BaseSimulator:
             Dictionaries of position to methylation state of all positions within the paired reads.
         """
         return (
-            util.subset_dict(reads[0], self.met_calls[strand]),
-            util.subset_dict(reads[1], self.met_calls[strand]),
+            util.subset_dict(reads[0], {**self.met_calls[0], **self.met_calls[1]}),
+            util.subset_dict(reads[1], {**self.met_calls[0], **self.met_calls[1]}),
         )

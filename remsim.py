@@ -128,9 +128,9 @@ def main(
                 'Invalid simulation mode specified, please use either "vef" or "fastq"'
             )
 
-        out_dpath: Path = Path(fmt_conf["intermediate_dir"])
+        met_calls_dpath: Path = Path(fmt_conf["intermediate_dir"])
         in_fpath: Path = Path(fmt_conf["raw_methylation_calls"])
-        met_calls_fpath: Path = out_dpath.joinpath("processed_" + in_fpath.name)
+        met_calls_fpath: Path = met_calls_dpath.joinpath("processed_" + in_fpath.name)
 
         # Store reference genome fasta info and methylation calls info by chromosome in
         # dictionaries.
