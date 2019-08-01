@@ -83,8 +83,12 @@ class BaseSimulator:
         else:
             self.window_end = len(chrom_seq) - 1
 
-        # Output file paths.
         self.source: str = source
+
+        # Check if specified window has methylation calls...
+        self._check_window_met_calls()
+
+        # Output file paths.
         self.output_dir: Path = output_dir
         self.file_prefix: str = file_prefix
         util.ensure_dir(output_dir)
@@ -107,6 +111,23 @@ class BaseSimulator:
             If not implemented in child class.
         """
         raise NotImplementedError
+
+    def _check_window_met_calls(self) -> Optional[NoReturn]:
+        """
+        """
+        if (
+            len(
+                util.subset_dict(
+                    (self.window_start, self.window_end), {**self.met_calls[0], **self.met_calls[1]}
+                )
+            )
+            < 2
+        ):
+            raise LookupError(
+                "Not enough (<2) methylation calls found for chr{}, {}-{} in {}.".format(
+                    self.chrom, self.window_start, self.window_end - 1, self.source
+                )
+            )
 
     @abstractmethod
     def _set_output_file_path(self) -> Optional[NoReturn]:
